@@ -237,9 +237,93 @@ Vous pouvez retouver toutes les commandes sur la [documentation officielle de re
 Attention, l'intérêt d'utiliser des bases de données NoSql est justement le fait qu'il n'y a pas de schéma prédéfini, pas de jointures, pas de contraintes d'intégrité, etc. Il est donc possible de stocker des données de différentes natures dans une même base de données. 
 
 - **Les Pub/Sub**  
-Ces structures de données sont très utilisées dans des application <temps réel> c'est à dire des applications qui doivent réagir en temps réel à des événements comme par exemple des échanges de message.
+    Ces structures de données sont très utilisées dans des application <temps réel> c'est à dire des applications qui doivent réagir en temps réel à des événements comme par exemple des échanges de message.
 
-On va simuler l'interaction de deux clients. Pour cela, lancer le redis-cli dans deux terminaux différents. 
+    On va simuler l'interaction de deux clients. Pour cela, lancer le redis-cli dans deux terminaux différents. 
+    + <u>Etape 1:</u>  
+    Sur le terminal 1, lancer la commande suivante :
+    ```bash
+    subscribe mescours user:1
+    ```
+    Cette commande permet de s'abonner à deux canaux `mescours` et `user:1`. Le terminal1 qu'on peut appeler client1 est maintenant en attente de messages sur ces deux canaux.
+
+
+    + <u>Etape 2:</u>
+    Sur le terminal 2, lancer la commande suivante :
+    ```bash
+    publish mescours "Un nouveau cours sur MongoDB"
+    ```
+
+    Vous devriez voir le message `Un nouveau cours sur MongoDB` s'afficher sur le terminal 1. Cela signifie que le client1 a bien reçu le message publié par le client2.
+
+    + Il est possible de spécifier le client qui doit recevoir le message en utilisant la commande `publish` suivie du nom du client et du message à envoyer comme suit :  
+        ```bash
+        publish user:1 "Bonjour user 1"
+        ```
+    + Il est également possible de s'abonner à plusieurs canaux qui commencent par un certain pattern grâce à la commande psubscribe.  
+    **Cas pratique :**   
+    Exécuter la commande suivante sur le client1
+    ```bash
+    psubscribe mes*
+    ```
+    Cette commande permet de s'abonner à tous les canaux qui commencent par `mes`. Maintenant essayez de lancer la commande publish sur le client2 en utilisant un canal qui commence par `mes` pour voir si le client1 reçoit le message.
+
+    <details close>
+    <summary>Réponse</summary>
+    
+    <b>publish mesNotes "Une nouvelle note est disponible" </b> <br>
+    
+
+## **POINTS IMPORTANTS** : </u>
+- La fonction `KEYS *` permet d'afficher toutes les clefs créées durant une session
+- REDIS mets à disposition 16 bases de données numérotées de 0 à 15. Vous pouvez changer de base de données en utilisant la commande `select` suivi du numéro de la base de données. 
+
+
+
+## Quatre autres fonctionnalités dans REDIS
+- **Les transactions**    
+
+    Les transactions permettent de regrouper plusieurs commandes dans une seule transaction atomique. Pour commencer une transaction, vous pouvez utiliser la commande `multi`. Ensuite, vous pouvez ajouter des commandes à la transaction en utilisant les commandes `set`, `get`, etc. Enfin, vous pouvez exécuter la transaction en utilisant la commande `exec`. Si une des commandes de la transaction échoue, toutes les commandes précédentes sont annulées. Dans l'exemple qui suit, on va créer une clef `compteur` puis l'incrémenter dans une transaction.
+
+    ```bash
+    multi
+    set compteur 0
+    incr compteur
+    exec
+    ```
+
+- **Les scripts Lua**  
+
+    Redis permet d'exécuter des scripts Lua. Pour exécuter un script Lua, vous pouvez utiliser la commande `eval` suivie du script Lua et des arguments. Par exemple, pour incrémenter la valeur de la clef `compteur` en utilisant un script Lua, vous pouvez taper la commande suivante :
+
+    ```bash
+    eval "return redis.call('incr', KEYS[1])" 1 compteur
+    ```
+    La commande `eval` prend trois arguments : le script Lua, le nombre de clefs utilisées par le script et les arguments du script.
+
+- **Les pipelines**
+
+    Les pipelines permettent d'envoyer plusieurs commandes à redis en une seule fois. Pour commencer un pipeline, vous pouvez utiliser la commande `pipeline`. Ensuite, vous pouvez ajouter des commandes au pipeline en utilisant les commandes `set`, `get`, etc. Enfin, vous pouvez exécuter le pipeline en utilisant la commande `exec`. Les pipelines sont très utiles pour réduire le temps de latence lors de l'envoi de plusieurs commandes à redis. Dans l'exemple qui suit, on va incrémenter la valeur de la clef `compteur` en utilisant un pipeline.
+
+    ```bash
+    pipeline
+    set compteur 0
+    incr compteur
+    exec
+    ```
+
+- **Les notifications**
+
+    Les notifications permettent de recevoir des notifications lorsqu'une commande est exécutée sur une clef. Pour activer les notifications, vous pouvez utiliser la commande `config set notify-keyspace-events` suivie des événements à surveiller. Par exemple, pour surveiller les événements de type `K`, vous pouvez taper la commande suivante :
+
+    ```bash
+    config set notify-keyspace-events KE
+    ```
+
+    Les événements de type `K` correspondent aux événements de type `KeySpace`. Vous pouvez également surveiller les événements de type `E` qui correspondent aux événements de type `Keyevent`. Les notifications sont très utiles pour suivre les modifications apportées à une clef dans redis.
+
+    
+
 
 
 
